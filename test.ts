@@ -15,21 +15,21 @@ test('memoize', t => {
 	t.is(memoized('foo'), 1);
 	t.is(memoized('foo'), 1);
 	t.is(memoized('foo'), 1);
-	t.is(memoized('foo', 'bar'), 1);
-	t.is(memoized('foo', 'bar'), 1);
-	t.is(memoized('foo', 'bar'), 1);
-	t.is(memoized(1), 2);
-	t.is(memoized(1), 2);
-	t.is(memoized(null), 3);
-	t.is(memoized(null), 3);
-	t.is(memoized(fixture), 4);
-	t.is(memoized(fixture), 4);
-	t.is(memoized(true), 5);
-	t.is(memoized(true), 5);
+	t.is(memoized('foo', 'bar'), 2);
+	t.is(memoized('foo', 'bar'), 2);
+	t.is(memoized('foo', 'bar'), 2);
+	t.is(memoized(1), 3);
+	t.is(memoized(1), 3);
+	t.is(memoized(null), 4);
+	t.is(memoized(null), 4);
+	t.is(memoized(fixture), 5);
+	t.is(memoized(fixture), 5);
+	t.is(memoized(true), 6);
+	t.is(memoized(true), 6);
 
 	// Ensure that functions are stored by reference and not by "value" (e.g. their `.toString()` representation)
-	t.is(memoized(() => index++), 6);
 	t.is(memoized(() => index++), 7);
+	t.is(memoized(() => index++), 8);
 });
 
 test('cacheKey option', t => {
@@ -93,8 +93,8 @@ test('maxAge option', async t => {
 test('maxAge option deletes old items', async t => {
 	let index = 0;
 	const fixture = (a?: unknown) => index++;
-	const cache = new Map<number, number>();
-	const deleted: number[] = [];
+	const cache = new Map<string, number>();
+	const deleted: string[] = [];
 	const _delete = cache.delete.bind(cache);
 	cache.delete = item => {
 		deleted.push(item);
@@ -104,14 +104,14 @@ test('maxAge option deletes old items', async t => {
 	const memoized = memoize(fixture, {maxAge: 100, cache});
 	t.is(memoized(1), 0);
 	t.is(memoized(1), 0);
-	t.is(cache.has(1), true);
+	t.is(cache.has('0:number:1'), true);
 	await delay(50);
 	t.is(memoized(1), 0);
 	t.is(deleted.length, 0);
 	await delay(200);
 	t.is(memoized(1), 1);
 	t.is(deleted.length, 1);
-	t.is(deleted[0], 1);
+	t.is(deleted[0], '0:number:1');
 });
 
 test('maxAge items are deleted even if function throws', async t => {
@@ -356,4 +356,14 @@ test('maxAge dependent on function parameters', async t => {
 	t.is(memoized(2), 2); // Initial call with different parameter, cached
 	await delay(210);
 	t.is(memoized(2), 3); // Cache expired, should compute again
+});
+
+test('multiple arguments in many combinations', t => {
+	const object = {};
+	let index = 0;
+	const fixture = (a?: unknown, b?: unknown) => index++;
+	const memoized = memoize(fixture);
+
+	t.is(memoized(object, 1), 0);
+	t.is(memoized(object, 2), 1);
 });

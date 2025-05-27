@@ -101,7 +101,7 @@ export default function memoize<
 >(
 	function_: FunctionToMemoize,
 	{
-		cacheKey,
+		cacheKey = createArgumentsKey as () => CacheKeyType,
 		cache = new Map(),
 		maxAge,
 	}: Options<FunctionToMemoize, CacheKeyType> = {},
@@ -242,4 +242,38 @@ export function memoizeClear(function_: AnyFunction): void {
 	for (const timer of cacheTimerStore.get(function_) ?? []) {
 		clearTimeout(timer);
 	}
+}
+
+function createArgumentsKey(arguments_: readonly any[]): any {
+	const hasNonPrimitive = arguments_.some(argument =>
+		argument !== null
+		&& argument !== undefined
+		&& (typeof argument === 'object' || typeof argument === 'function'),
+	);
+
+	if (hasNonPrimitive) {
+		return arguments_[0];
+	}
+
+	if (arguments_.length === 0) {
+		return '0:undefined';
+	}
+
+	return arguments_.map((argument, index) => {
+		if (argument === null) {
+			return `${index}:null`;
+		}
+
+		if (argument === undefined) {
+			return `${index}:undefined`;
+		}
+
+		const type = typeof argument;
+
+		if (type === 'symbol') {
+			return `${index}:symbol:${String(argument)}`;
+		}
+
+		return `${index}:${type}:${String(argument)}`;
+	}).join('|');
 }
